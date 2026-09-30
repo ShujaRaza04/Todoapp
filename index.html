@@ -80,7 +80,7 @@
     padding: 2.5rem 0 2rem;
     gap: 1rem;
   }
-  /* .header-left {} */
+  .header-left {}
   .app-name {
     font-family: 'Bebas Neue', sans-serif;
     font-size: clamp(3.5rem, 10vw, 5.5rem);
@@ -164,9 +164,12 @@
     display: flex;
     gap: 10px;
     align-items: stretch;
+    flex-wrap: wrap;
   }
   .task-input {
     flex: 1;
+    min-width: 0;
+    width: 100%;
     background: var(--bg2);
     border: 1.5px solid var(--border);
     border-radius: 12px;
@@ -179,7 +182,14 @@
   }
   .task-input::placeholder { color: var(--text3); }
   .task-input:focus { border-color: var(--c1); }
+  .bottom-row {
+    display: flex;
+    gap: 10px;
+    align-items: stretch;
+  }
   .date-input {
+    flex: 1;
+    min-width: 0;
     background: var(--bg2);
     border: 1.5px solid var(--border);
     border-radius: 12px;
@@ -190,7 +200,6 @@
     outline: none;
     cursor: pointer;
     transition: border-color var(--transition);
-    width: 150px;
   }
   .date-input:focus { border-color: var(--c2); }
   .date-input::-webkit-calendar-picker-indicator { filter: invert(0.5); cursor: pointer; }
@@ -206,9 +215,17 @@
     cursor: pointer;
     transition: transform var(--transition), opacity var(--transition);
     white-space: nowrap;
+    flex-shrink: 0;
   }
   .add-btn:hover { transform: scale(1.03); }
   .add-btn:active { transform: scale(0.97); opacity: 0.9; }
+
+  /* Desktop: single row layout */
+  @media (min-width: 520px) {
+    .add-row { flex-wrap: nowrap; }
+    .bottom-row { display: contents; }
+    .date-input { width: 150px; flex: 0 0 150px; }
+  }
 
   /* Search & filter */
   .controls {
@@ -489,8 +506,10 @@
   <div class="add-form">
     <div class="add-row">
       <input class="task-input" id="taskInput" type="text" placeholder="What needs to be done?" maxlength="120" />
-      <input class="date-input" id="dateInput" type="date" />
-      <button class="add-btn" onclick="addTask()">+ Add</button>
+      <div class="bottom-row">
+        <input class="date-input" id="dateInput" type="date" />
+        <button class="add-btn" onclick="addTask()">+ Add</button>
+      </div>
     </div>
   </div>
 
