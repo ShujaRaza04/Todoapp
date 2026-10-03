@@ -160,15 +160,7 @@
     flex-direction: column;
     gap: 10px;
   }
-  .add-row {
-    display: flex;
-    gap: 10px;
-    align-items: stretch;
-    flex-wrap: wrap;
-  }
   .task-input {
-    flex: 1;
-    min-width: 0;
     width: 100%;
     background: var(--bg2);
     border: 1.5px solid var(--border);
@@ -203,11 +195,13 @@
   }
   .date-input:focus { border-color: var(--c2); }
   .date-input::-webkit-calendar-picker-indicator { filter: invert(0.5); cursor: pointer; }
+  /* Placeholder styling for date input */
+  .date-input:not(:valid) { color: var(--text3); }
   .add-btn {
     background: linear-gradient(135deg, var(--c1), #ff6b35);
     border: none;
     border-radius: 12px;
-    padding: 0.85rem 1.4rem;
+    padding: 0.85rem 1.6rem;
     color: #fff;
     font-family: 'Outfit', sans-serif;
     font-size: 1rem;
@@ -219,13 +213,6 @@
   }
   .add-btn:hover { transform: scale(1.03); }
   .add-btn:active { transform: scale(0.97); opacity: 0.9; }
-
-  /* Desktop: single row layout */
-  @media (min-width: 520px) {
-    .add-row { flex-wrap: nowrap; }
-    .bottom-row { display: contents; }
-    .date-input { width: 150px; flex: 0 0 150px; }
-  }
 
   /* Search & filter */
   .controls {
@@ -504,12 +491,10 @@
 
   <!-- Add form -->
   <div class="add-form">
-    <div class="add-row">
-      <input class="task-input" id="taskInput" type="text" placeholder="What needs to be done?" maxlength="120" />
-      <div class="bottom-row">
-        <input class="date-input" id="dateInput" type="date" />
-        <button class="add-btn" onclick="addTask()">+ Add</button>
-      </div>
+    <input class="task-input" id="taskInput" type="text" placeholder="What needs to be done?" maxlength="120" />
+    <div class="bottom-row">
+      <input class="date-input" id="dateInput" type="date" placeholder="📅 Pick a due date" />
+      <button class="add-btn" onclick="addTask()">+ Add</button>
     </div>
   </div>
 
