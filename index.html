@@ -115,6 +115,7 @@
     transition: background var(--transition), transform var(--transition);
     color: var(--text);
   }
+  .icon-btn[hidden] { display: none; }
   .icon-btn:hover { background: var(--bg3); transform: scale(1.05); }
   .icon-btn:active { transform: scale(0.96); }
 
@@ -174,19 +175,54 @@
   }
   .task-input::placeholder { color: var(--text3); }
   .task-input:focus { border-color: var(--c1); }
+
+  /* Deadline type switch: Timer | Date */
+  .mode-toggle {
+    display: flex;
+    gap: 6px;
+    background: var(--bg2);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 4px;
+  }
+  .mode-btn {
+    flex: 1;
+    min-height: 38px;
+    border: none;
+    background: none;
+    border-radius: 9px;
+    color: var(--text2);
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background var(--transition), color var(--transition);
+  }
+  .mode-btn.active { background: var(--c1); color: #fff; }
+  .mode-btn:not(.active):hover { background: var(--bg3); color: var(--text); }
+
+  /* Picker row: [ time limit  OR  date ] [ + Add ] */
   .bottom-row {
     display: flex;
     gap: 10px;
     align-items: stretch;
   }
-  .date-input {
+  .pick-field {
     flex: 1;
     min-width: 0;
+    position: relative;
+    display: flex;
+  }
+  .pick-field[hidden] { display: none; }
+  .date-input, .dur-select {
+    width: 100%;
+    min-width: 0;
+    min-height: 46px;
     background: var(--bg2);
     border: 1.5px solid var(--border);
     border-radius: 12px;
     padding: 0.85rem 1rem;
-    color: var(--text2);
+    color: var(--text);
     font-family: 'Outfit', sans-serif;
     font-size: 0.85rem;
     outline: none;
@@ -194,9 +230,28 @@
     transition: border-color var(--transition);
   }
   .date-input:focus { border-color: var(--c2); }
+  .dur-select:focus { border-color: var(--c3); }
+  .dur-select.empty { color: var(--text3); }
+  select option { background: var(--surface); color: var(--text); }
   .date-input::-webkit-calendar-picker-indicator { filter: invert(0.5); cursor: pointer; }
-  /* Placeholder styling for date input */
-  .date-input:not(:valid) { color: var(--text3); }
+
+  /* Real placeholder for the date field (browsers ignore placeholder="" on type=date) */
+  .date-field:not(.has-value):not(:focus-within) .date-input { color: transparent; }
+  .date-ph {
+    position: absolute;
+    left: 1rem; top: 50%;
+    transform: translateY(-50%);
+    max-width: calc(100% - 3rem);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text3);
+    font-size: 0.85rem;
+    pointer-events: none;
+  }
+  .date-field.has-value .date-ph,
+  .date-field:focus-within .date-ph { display: none; }
+
   .add-btn {
     background: linear-gradient(135deg, var(--c1), #ff6b35);
     border: none;
@@ -213,6 +268,13 @@
   }
   .add-btn:hover { transform: scale(1.03); }
   .add-btn:active { transform: scale(0.97); opacity: 0.9; }
+
+  .form-hint {
+    font-size: 0.74rem;
+    line-height: 1.4;
+    color: var(--text2);
+    padding: 0 0.2rem;
+  }
 
   /* Search & filter */
   .controls {
@@ -388,8 +450,11 @@
   }
   .due-badge.future { background: rgba(0,229,255,0.12); color: var(--c3); }
   .due-badge.today { background: rgba(255,204,0,0.15); color: var(--c2); }
+  .due-badge.urgent { background: rgba(255,138,61,0.16); color: #ff8a3d; animation: pulse 1.8s ease-in-out infinite; }
   .due-badge.overdue { background: rgba(255,61,107,0.15); color: var(--c1); }
   .due-badge.done-badge { background: rgba(0,230,118,0.12); color: var(--c5); }
+  @keyframes pulse { 50% { opacity: 0.55; } }
+  @media (prefers-reduced-motion: reduce) { .due-badge.urgent { animation: none; } }
 
   /* Delete btn */
   .del-btn {
@@ -458,9 +523,68 @@
 
   /* Overdue highlight on task */
   .task-item.overdue-task { border-color: rgba(255,61,107,0.2); }
+
+  /* In-app reminder alerts */
+  .toast-wrap {
+    position: fixed;
+    top: calc(12px + env(safe-area-inset-top, 0px));
+    left: 0; right: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 0 12px;
+    z-index: 100;
+    pointer-events: none;
+  }
+  .toast {
+    pointer-events: auto;
+    width: 100%;
+    max-width: 420px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--tc, var(--c4));
+    border-radius: 14px;
+    padding: 0.8rem 0.6rem 0.8rem 0.9rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+    animation: toastIn 0.28s cubic-bezier(.4,0,.2,1);
+  }
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateY(-12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .toast-icon { font-size: 1.3rem; line-height: 1.2; }
+  .toast-body { flex: 1; min-width: 0; }
+  .toast-title { font-weight: 600; font-size: 0.92rem; }
+  .toast-text {
+    font-size: 0.82rem;
+    color: var(--text2);
+    margin-top: 2px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    word-break: break-word;
+  }
+  .toast-x {
+    flex-shrink: 0;
+    width: 32px; height: 32px;
+    border: none;
+    border-radius: 8px;
+    background: none;
+    color: var(--text2);
+    font-size: 0.95rem;
+    cursor: pointer;
+  }
+  .toast-x:hover { background: var(--bg3); color: var(--text); }
 </style>
 </head>
 <body>
+
+<div class="toast-wrap" id="toastWrap" aria-live="polite"></div>
 
 <div class="wrap">
   <header>
@@ -469,6 +593,7 @@
       <div class="app-tagline">Your tasks. Conquered.</div>
     </div>
     <div class="header-right">
+      <button class="icon-btn" id="bellBtn" title="Reminder notifications" aria-label="Reminder notifications">🔔</button>
       <button class="icon-btn" id="themeBtn" title="Toggle theme">🌙</button>
     </div>
   </header>
@@ -492,10 +617,24 @@
   <!-- Add form -->
   <div class="add-form">
     <input class="task-input" id="taskInput" type="text" placeholder="What needs to be done?" maxlength="120" />
+
+    <div class="mode-toggle" role="group" aria-label="Deadline type">
+      <button type="button" class="mode-btn active" id="modeTimer" aria-pressed="true">⏱ Timer</button>
+      <button type="button" class="mode-btn" id="modeDate" aria-pressed="false">📅 Date</button>
+    </div>
+
     <div class="bottom-row">
-      <input class="date-input" id="dateInput" type="date" placeholder="📅 Pick a due date" />
+      <div class="pick-field" id="timerField">
+        <select class="dur-select empty" id="durationInput" aria-label="Time limit"></select>
+      </div>
+      <div class="pick-field date-field" id="dateField" hidden>
+        <input class="date-input" id="dateInput" type="date" aria-label="Due date" />
+        <span class="date-ph">📅 Pick a due date</span>
+      </div>
       <button class="add-btn" onclick="addTask()">+ Add</button>
     </div>
+
+    <div class="form-hint" id="formHint"></div>
   </div>
 
   <!-- Controls -->
@@ -535,53 +674,158 @@
 </div>
 
 <script>
-  let tasks = JSON.parse(localStorage.getItem('done_tasks') || '[]');
+  const $ = id => document.getElementById(id);
+  const MIN = 60 * 1000, HOUR = 60 * MIN, DAY = 24 * HOUR;
+  const ACCENTS = 5;
+  const STORE_KEY = 'done_tasks';
+
   let currentFilter = 'all';
   let accentIndex = 0;
-  const ACCENTS = 5;
+  let mode = 'timer';            // deadline type in the form: 'timer' (up to 23 h) or 'date'
+
+  /* ================= Storage ================= */
+
+  // A date deadline means the END of that day (11:59 PM, local time)
+  function endOfDay(dateStr) {
+    return new Date(dateStr + 'T23:59:59.999').getTime();
+  }
+
+  // Each task remembers which reminders are already used up, so none fires twice.
+  // A reminder whose moment has already passed when the task is created/re-opened is skipped.
+  function initFired(t, now) {
+    const left = t.due - now;
+    t.fired = { day: left <= DAY, hour: left <= HOUR, end: left <= 0 };
+  }
+
+  function loadTasks() {
+    let list = [];
+    try { list = JSON.parse(localStorage.getItem(STORE_KEY) || '[]'); } catch (e) {}
+    if (!Array.isArray(list)) list = [];
+    const now = Date.now();
+    list.forEach(t => {
+      if (!('due' in t)) {                       // saved by the older version (date only)
+        t.due = t.date ? endOfDay(t.date) : null;
+        t.mode = t.date ? 'date' : 'none';
+        if (Number.isFinite(t.due)) initFired(t, now);
+      }
+      if (!Number.isFinite(t.due)) { t.due = null; t.mode = 'none'; }
+      if (t.due && !t.fired) initFired(t, now);
+    });
+    return list;
+  }
+
+  let tasks = loadTasks();
 
   function save() {
-    localStorage.setItem('done_tasks', JSON.stringify(tasks));
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(tasks)); } catch (e) {}
   }
 
-  function getDateStatus(dateStr, done) {
-    if (done) return { label: '✓ Done', cls: 'done-badge' };
-    if (!dateStr) return null;
-    const today = new Date(); today.setHours(0,0,0,0);
-    const due = new Date(dateStr + 'T00:00:00');
-    if (due < today) return { label: `Overdue · ${fmt(dateStr)}`, cls: 'overdue' };
-    if (due.getTime() === today.getTime()) return { label: 'Due today', cls: 'today' };
-    return { label: `Due ${fmt(dateStr)}`, cls: 'future' };
+  /* ================= Time formatting ================= */
+
+  // Live countdown text: "3d 4h", "5h 12m", "42m 05s", "9s"
+  function human(ms) {
+    const s = Math.max(0, Math.floor(ms / 1000));
+    const d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600),
+          m = Math.floor(s % 3600 / 60), sec = s % 60;
+    if (d >= 1) return h ? `${d}d ${h}h` : `${d}d`;
+    if (h >= 1) return `${h}h ${m}m`;
+    if (m >= 1) return `${m}m ${String(sec).padStart(2, '0')}s`;
+    return `${sec}s`;
   }
 
-  function fmt(dateStr) {
-    const d = new Date(dateStr + 'T00:00:00');
-    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  // Rougher text for alerts (they don't tick): "5h 12m", "42m"
+  function coarse(ms) {
+    const m = Math.floor(ms / MIN), h = Math.floor(m / 60), d = Math.floor(h / 24);
+    if (d >= 1) return `${d}d ${h % 24}h`;
+    if (h >= 1) return `${h}h ${m % 60}m`;
+    return m >= 1 ? `${m}m` : 'under a minute';
   }
+
+  function fmtDate(ts) {
+    return new Date(ts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  }
+
+  function dayDiff(ts, now) {                    // calendar days between today and ts
+    const a = new Date(ts), b = new Date(now);
+    a.setHours(0, 0, 0, 0); b.setHours(0, 0, 0, 0);
+    return Math.round((a - b) / DAY);
+  }
+
+  function todayStr() {                          // local YYYY-MM-DD
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  // What the little badge under a task says
+  function badgeFor(t, now) {
+    if (t.done) return { label: '✓ Done', cls: 'done-badge' };
+    if (!t.due) return null;
+    const left = t.due - now;
+    if (left <= 0) {
+      return t.mode === 'date'
+        ? { label: `Overdue · ${fmtDate(t.due)}`, cls: 'overdue' }
+        : { label: `Overdue · ${-left < MIN ? 'just now' : coarse(-left) + ' ago'}`, cls: 'overdue' };
+    }
+    const cls = left <= HOUR ? 'urgent' : left <= DAY ? 'today' : 'future';
+    if (t.mode === 'date') {
+      const n = dayDiff(t.due, now);
+      const when = n === 0 ? 'today' : n === 1 ? 'tomorrow' : fmtDate(t.due);
+      return { label: `Due ${when} · ${human(left)} left`, cls };
+    }
+    return { label: `⏱ ${human(left)} left`, cls };
+  }
+
+  /* ================= Add / edit tasks ================= */
 
   function addTask() {
-    const text = document.getElementById('taskInput').value.trim();
-    if (!text) { document.getElementById('taskInput').focus(); return; }
-    const date = document.getElementById('dateInput').value;
-    tasks.unshift({
-      id: Date.now(),
-      text,
-      date: date || '',
-      done: false,
-      accent: accentIndex % ACCENTS,
-      created: Date.now()
-    });
+    const input = $('taskInput');
+    const text = input.value.trim();
+    if (!text) { input.focus(); return; }
+
+    const now = Date.now();
+    let due = null, dueMode = 'none', dateStr = '';
+
+    if (mode === 'timer') {
+      const mins = parseInt($('durationInput').value, 10);
+      if (mins) { due = now + mins * MIN; dueMode = 'timer'; }
+    } else {
+      dateStr = $('dateInput').value;
+      if (dateStr) {
+        const end = endOfDay(dateStr);
+        if (Number.isFinite(end)) {
+          if (end < now) {
+            showToast({ icon: '📅', color: 'var(--c2)', title: 'That date has already passed', text: 'Pick today or a later date.' });
+            return;
+          }
+          due = end; dueMode = 'date';
+        }
+      }
+    }
+
+    const task = {
+      id: Date.now(), text, done: false,
+      accent: accentIndex % ACCENTS, created: now,
+      mode: dueMode, due, date: dueMode === 'date' ? dateStr : ''
+    };
+    if (due) initFired(task, now);
+    tasks.unshift(task);
     accentIndex++;
-    document.getElementById('taskInput').value = '';
-    document.getElementById('dateInput').value = '';
+
+    input.value = '';
+    $('durationInput').value = ''; syncSelectStyle();
+    $('dateInput').value = '';     syncDateField();
     save();
     renderTasks();
-    document.getElementById('taskInput').focus();
+    input.focus();
+    if (due) maybeAskPermission();
   }
 
   function toggleTask(id) {
     const t = tasks.find(t => t.id === id);
-    if (t) { t.done = !t.done; save(); renderTasks(); }
+    if (!t) return;
+    t.done = !t.done;
+    if (!t.done && t.due) initFired(t, Date.now());   // re-opened: only remind about what's still ahead
+    save(); renderTasks();
   }
 
   function deleteTask(id) {
@@ -609,12 +853,23 @@
     save(); renderTasks();
   }
 
-  function renderTasks() {
-    const search = document.getElementById('searchInput').value.toLowerCase();
-    const sort = document.getElementById('sortSelect').value;
-    const today = new Date(); today.setHours(0,0,0,0);
+  /* ================= Rendering ================= */
 
-    let filtered = tasks.filter(t => {
+  function updateStats(now) {
+    const done = tasks.filter(t => t.done).length;
+    const overdue = tasks.filter(t => !t.done && t.due && t.due <= now).length;
+    $('totalCount').textContent = tasks.length;
+    $('doneCount').textContent = done;
+    $('overdueCount').textContent = overdue;
+    $('clearBtn').classList.toggle('visible', done > 0);
+  }
+
+  function renderTasks() {
+    const search = $('searchInput').value.toLowerCase();
+    const sort = $('sortSelect').value;
+    const now = Date.now();
+
+    const filtered = tasks.filter(t => {
       if (currentFilter === 'active' && t.done) return false;
       if (currentFilter === 'done' && !t.done) return false;
       if (search && !t.text.toLowerCase().includes(search)) return false;
@@ -626,33 +881,21 @@
       if (sort === 'newest') return b.created - a.created;
       if (sort === 'alpha') return a.text.localeCompare(b.text);
       if (sort === 'due') {
-        if (!a.date && !b.date) return 0;
-        if (!a.date) return 1;
-        if (!b.date) return -1;
-        return a.date.localeCompare(b.date);
+        if (!a.due && !b.due) return 0;
+        if (!a.due) return 1;
+        if (!b.due) return -1;
+        return a.due - b.due;
       }
       return 0;
     });
 
-    const list = document.getElementById('taskList');
-    const empty = document.getElementById('emptyState');
+    const list = $('taskList');
+    const empty = $('emptyState');
     list.innerHTML = '';
 
-    const total = tasks.length;
-    const done = tasks.filter(t => t.done).length;
-    const overdue = tasks.filter(t => {
-      if (t.done || !t.date) return false;
-      return new Date(t.date + 'T00:00:00') < today;
-    }).length;
-
-    document.getElementById('totalCount').textContent = total;
-    document.getElementById('doneCount').textContent = done;
-    document.getElementById('overdueCount').textContent = overdue;
-    document.getElementById('listCount').textContent =
+    updateStats(now);
+    $('listCount').textContent =
       filtered.length === 0 ? '' : `${filtered.length} task${filtered.length !== 1 ? 's' : ''}`;
-
-    const clearBtn = document.getElementById('clearBtn');
-    clearBtn.classList.toggle('visible', done > 0);
 
     if (filtered.length === 0) {
       empty.classList.add('visible');
@@ -667,8 +910,8 @@
     empty.classList.remove('visible');
 
     filtered.forEach(t => {
-      const status = getDateStatus(t.date, t.done);
-      const isOverdue = t.date && !t.done && new Date(t.date + 'T00:00:00') < today;
+      const badge = badgeFor(t, now);
+      const isOverdue = !t.done && t.due && t.due <= now;
 
       const item = document.createElement('div');
       item.className = `task-item${t.done ? ' done' : ''}${isOverdue ? ' overdue-task' : ''}`;
@@ -683,7 +926,7 @@
         <div class="task-body">
           <div class="task-text">${escHtml(t.text)}</div>
           <div class="task-meta">
-            ${status ? `<span class="due-badge ${status.cls}">${status.label}</span>` : ''}
+            ${badge ? `<span class="due-badge ${badge.cls}">${badge.label}</span>` : ''}
           </div>
         </div>
         <button class="del-btn" onclick="deleteTask(${t.id})" title="Delete">✕</button>
@@ -692,12 +935,238 @@
     });
   }
 
+  // Refresh countdown badges in place (no re-render, so nothing flickers)
+  function updateBadges(now) {
+    const byId = new Map(tasks.map(t => [String(t.id), t]));
+    document.querySelectorAll('#taskList .task-item').forEach(el => {
+      const t = byId.get(el.dataset.id);
+      if (!t) return;
+      const badge = badgeFor(t, now);
+      const badgeEl = el.querySelector('.due-badge');
+      if (badge && badgeEl) {
+        if (badgeEl.textContent !== badge.label) badgeEl.textContent = badge.label;
+        const cls = 'due-badge ' + badge.cls;
+        if (badgeEl.className !== cls) badgeEl.className = cls;
+      }
+      el.classList.toggle('overdue-task', !t.done && !!t.due && t.due <= now);
+    });
+  }
+
   function escHtml(s) {
     return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
-  // Theme toggle
-  const themeBtn = document.getElementById('themeBtn');
+  /* ================= Reminders ================= */
+
+  const STAGES = ['day', 'hour', 'end'];         // 1 day left → 1 hour left → time's up
+  const STAGE_INFO = {
+    day:  { icon: '⏰', color: 'var(--c3)' },
+    hour: { icon: '⏳', color: '#ff8a3d' },
+    end:  { icon: '🔔', color: 'var(--c1)' }
+  };
+
+  function reminderMessage(stage, left) {
+    if (stage === 'end') return -left > 2 * MIN ? `Deadline passed ${coarse(-left)} ago` : "Time's up!";
+    const threshold = stage === 'day' ? DAY : HOUR;
+    if (threshold - left <= 2 * MIN) return stage === 'day' ? '1 day left' : '1 hour left';
+    return `${coarse(left)} left`;               // late (page was closed/asleep): say what's true now
+  }
+
+  function checkReminders(now) {
+    const events = [];
+    tasks.forEach(t => {
+      if (t.done || !t.due || !t.fired) return;
+      const left = t.due - now;
+      const stage = left <= 0 ? 'end' : left <= HOUR ? 'hour' : left <= DAY ? 'day' : null;
+      if (!stage) return;
+      if (!t.fired[stage]) events.push({ t, stage, left });
+      // Mark this stage and earlier ones as used, so a late catch-up alerts only once per task
+      STAGES.slice(0, STAGES.indexOf(stage) + 1).forEach(s => { t.fired[s] = true; });
+    });
+    if (!events.length) return;
+    save();
+
+    events.sort((a, b) => a.left - b.left);
+    if (events.length > 3) {                     // e.g. reopening the app after being away
+      alertUser({
+        icon: '🔔', color: 'var(--c1)', tag: 'summary', vibrate: [200, 100, 200],
+        title: `${events.length} tasks need your attention`,
+        text: 'Some deadlines are close or have passed. Check your list.'
+      });
+      return;
+    }
+    events.forEach(({ t, stage, left }) => alertUser({
+      icon: STAGE_INFO[stage].icon,
+      color: STAGE_INFO[stage].color,
+      title: reminderMessage(stage, left),
+      text: t.text,
+      tag: `${t.id}-${stage}`,
+      vibrate: stage === 'end' ? [200, 100, 200, 100, 200] : [150]
+    }));
+  }
+
+  // One alert = in-app card + vibration + (if allowed and you're away from the page) a system notification
+  function alertUser({ icon, color, title, text, tag, vibrate }) {
+    showToast({ icon, color, title, text, sticky: true });
+    try { if (navigator.vibrate) navigator.vibrate(vibrate || [150]); } catch (e) {}
+    const away = document.hidden || (document.hasFocus && !document.hasFocus());
+    if (canNotify() && away) {
+      try {
+        const n = new Notification(`${icon} ${title}`, { body: text, tag });
+        n.onclick = () => { window.focus(); n.close(); };
+      } catch (e) { /* some mobile browsers don't allow this; the in-app card still shows */ }
+    }
+  }
+
+  function showToast({ icon, color, title, text, sticky }) {
+    const wrap = $('toastWrap');
+    const el = document.createElement('div');
+    el.className = 'toast';
+    el.style.setProperty('--tc', color || 'var(--c4)');
+
+    const ic = document.createElement('div');
+    ic.className = 'toast-icon'; ic.textContent = icon || '🔔';
+
+    const body = document.createElement('div');
+    body.className = 'toast-body';
+    const ti = document.createElement('div');
+    ti.className = 'toast-title'; ti.textContent = title;
+    body.appendChild(ti);
+    if (text) {
+      const tx = document.createElement('div');
+      tx.className = 'toast-text'; tx.textContent = text;
+      body.appendChild(tx);
+    }
+
+    const x = document.createElement('button');
+    x.type = 'button'; x.className = 'toast-x';
+    x.setAttribute('aria-label', 'Dismiss'); x.textContent = '✕';
+    x.addEventListener('click', () => el.remove());
+
+    el.append(ic, body, x);
+    wrap.appendChild(el);
+    while (wrap.children.length > 3) wrap.firstElementChild.remove();
+    if (!sticky) setTimeout(() => el.remove(), 6000);
+  }
+
+  /* ---- Browser notification permission ---- */
+
+  function notifSupported() { return 'Notification' in window; }
+  function canNotify() { return notifSupported() && Notification.permission === 'granted'; }
+
+  function askPermission() {
+    return new Promise(resolve => {
+      try {
+        const r = Notification.requestPermission(resolve);   // callback form for old Safari
+        if (r && typeof r.then === 'function') r.then(resolve);
+      } catch (e) { resolve('denied'); }
+    });
+  }
+
+  function updateBell() {
+    const b = $('bellBtn');
+    if (!notifSupported()) { b.hidden = true; return; }
+    const p = Notification.permission;
+    b.textContent = p === 'granted' ? '🔔' : '🔕';
+    b.title = p === 'granted' ? 'Notifications are on'
+            : p === 'denied' ? 'Notifications are blocked' : 'Turn on notifications';
+  }
+
+  // Ask once, right after the first task with a deadline is added
+  function maybeAskPermission() {
+    if (!notifSupported() || Notification.permission !== 'default') return;
+    try {
+      if (localStorage.getItem('done_asked')) return;
+      localStorage.setItem('done_asked', '1');
+    } catch (e) {}
+    askPermission().then(updateBell);
+  }
+
+  $('bellBtn').addEventListener('click', async () => {
+    if (!notifSupported()) return;
+    if (Notification.permission === 'default') { await askPermission(); updateBell(); }
+    if (Notification.permission === 'granted') {
+      let popup = true;
+      try { new Notification('🔔 Notifications are on', { body: 'DONE. will alert you before deadlines.' }); }
+      catch (e) { popup = false; }               // e.g. Android Chrome only allows pop-ups from a service worker
+      showToast(popup
+        ? { icon: '🔔', color: 'var(--c5)', title: 'Notifications are on',
+            text: "You'll be alerted at 1 day left, 1 hour left, and when time is up, while this page is open." }
+        : { icon: '📳', color: 'var(--c5)', title: 'In-app alerts are on',
+            text: "This browser can't show pop-up notifications from a web page, so alerts appear here (with a vibration) while the page is open." });
+    } else {
+      showToast({
+        icon: '🔕', color: 'var(--c2)', title: 'Pop-up notifications are off',
+        text: 'In-app alerts will still appear while this page is open.'
+      });
+    }
+  });
+
+  /* ================= Add form: Timer / Date ================= */
+
+  function durLabel(m) {
+    if (m < 60) return `${m} min`;
+    const h = Math.floor(m / 60), r = m % 60;
+    return r ? `${h} h ${r} min` : `${h} ${h === 1 ? 'hour' : 'hours'}`;
+  }
+
+  function buildDurations() {
+    const sel = $('durationInput');
+    const add = (value, label) => {
+      const o = document.createElement('option');
+      o.value = value; o.textContent = label;
+      sel.appendChild(o);
+    };
+    add('', '⏱ Set a time limit (optional)');
+    // Edit this list to change the choices (values are minutes). 23 hours is the maximum.
+    [5, 10, 15, 30, 45, 60, 90].forEach(m => add(m, durLabel(m)));
+    for (let h = 2; h <= 23; h++) add(h * 60, durLabel(h * 60));
+    add('more', '📅 Longer than 23 h → pick a date');
+  }
+
+  function setMode(m) {
+    mode = m;
+    $('modeTimer').classList.toggle('active', m === 'timer');
+    $('modeDate').classList.toggle('active', m === 'date');
+    $('modeTimer').setAttribute('aria-pressed', String(m === 'timer'));
+    $('modeDate').setAttribute('aria-pressed', String(m === 'date'));
+    $('timerField').hidden = m !== 'timer';
+    $('dateField').hidden = m !== 'date';
+    $('formHint').textContent = m === 'timer'
+      ? 'Timer: 5 min up to 23 hours. Need longer? Switch to Date.'
+      : 'Date: the deadline is 11:59 PM on the day you pick.';
+  }
+
+  function syncSelectStyle() {
+    const sel = $('durationInput');
+    sel.classList.toggle('empty', !sel.value);
+  }
+  function syncDateField() {
+    $('dateField').classList.toggle('has-value', !!$('dateInput').value);
+  }
+
+  $('modeTimer').addEventListener('click', () => setMode('timer'));
+  $('modeDate').addEventListener('click', () => setMode('date'));
+
+  $('durationInput').addEventListener('change', e => {
+    if (e.target.value === 'more') {             // longer than 23 h → date deadline
+      e.target.value = '';
+      setMode('date');
+      try { $('dateInput').focus(); $('dateInput').showPicker && $('dateInput').showPicker(); } catch (err) {}
+    }
+    syncSelectStyle();
+  });
+  $('dateInput').addEventListener('input', syncDateField);
+  $('dateInput').addEventListener('change', syncDateField);
+  $('dateInput').setAttribute('min', todayStr());
+
+  $('taskInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') addTask();
+  });
+
+  /* ================= Theme ================= */
+
+  const themeBtn = $('themeBtn');
   let isDark = true;
   themeBtn.addEventListener('click', () => {
     isDark = !isDark;
@@ -705,16 +1174,26 @@
     themeBtn.textContent = isDark ? '🌙' : '☀️';
   });
 
-  // Enter to add
-  document.getElementById('taskInput').addEventListener('keydown', e => {
-    if (e.key === 'Enter') addTask();
-  });
+  /* ================= Start ================= */
 
-  // Set default date to today
-  const today = new Date().toISOString().split('T')[0];
-  document.getElementById('dateInput').setAttribute('min', today);
+  // Checks reminders and refreshes countdowns. Runs every second, and instantly when you come back to the page.
+  function tick() {
+    const now = Date.now();
+    checkReminders(now);
+    updateBadges(now);
+    updateStats(now);
+  }
 
+  buildDurations();
+  setMode('timer');
+  syncSelectStyle();
+  syncDateField();
+  updateBell();
   renderTasks();
+  tick();
+  setInterval(tick, 1000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
+  window.addEventListener('focus', tick);
 </script>
 </body>
 </html>
